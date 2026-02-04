@@ -13,16 +13,14 @@ export interface Message {
 
 export type ResponseMode = 'brief' | 'detailed';
 
+export enum BotMood {
+  NEUTRAL = 'neutral',
+  THINKING = 'thinking',
+  TALKING = 'talking',
+}
+
 export interface ChatState {
   messages: Message[];
   isTyping: boolean; // Is the AI thinking/typing?
   userInput: string;
-}
-
-export enum BotMood {
-  NEUTRAL = 'neutral',
-  HAPPY = 'happy',
-  THINKING = 'thinking',
-  TALKING = 'talking',
-  LISTENING = 'listening'
 }

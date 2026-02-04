@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import ChatBox from './components/ChatBox';
 import MatrixBackground from './components/MatrixBackground';
-import RobotFace from './components/RobotFace';
 import { generateResponse } from './services/geminiService';
-import { Message, ResponseMode, BotMood } from './types';
+import { Message, ResponseMode } from './types';
 
 export default function App() {
   const [messages, setMessages] = useState<Message[]>([
@@ -45,9 +44,6 @@ export default function App() {
     }
   };
 
-  // Determine Mood
-  const currentMood = isThinking ? BotMood.THINKING : (isTyping ? BotMood.LISTENING : BotMood.NEUTRAL);
-
   return (
     <div className="min-h-screen bg-[#050505] text-gray-200 font-sans relative overflow-hidden flex flex-col items-center">
       
@@ -57,14 +53,9 @@ export default function App() {
       {/* Main Container */}
       <main className="relative z-20 w-full max-w-5xl h-screen flex flex-col py-4 px-4">
         
-        {/* Top: Robot Face & Header */}
-        <div className="flex-none flex flex-col items-center justify-center min-h-[30vh] pb-4 relative">
+        {/* Top: Header */}
+        <div className="flex-none flex flex-col items-center justify-center py-8 relative">
             
-            {/* The Agent Face */}
-            <div className="w-64 h-64 mb-4 relative">
-                <RobotFace mood={currentMood} isUserTyping={isTyping} />
-            </div>
-
             {/* Title Stamp */}
             <div className="border-2 border-evidence-red px-6 py-3 transform -rotate-1 bg-black/50 backdrop-blur-sm z-20">
                 <h1 className="text-2xl font-stamped text-evidence-red tracking-[0.2em] uppercase shadow-[0_0_15px_rgba(255,31,31,0.4)]">
