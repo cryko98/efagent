@@ -19,8 +19,8 @@ export const generateResponse = async (
 
   const ai = new GoogleGenAI({ apiKey });
   
-  // Using Flash model without tools to ensure stability on all keys
-  const MODEL_NAME = 'gemini-2.5-flash-latest';
+  // UPDATED: Using the correct preview model for Gemini 3 Flash to avoid 404 errors
+  const MODEL_NAME = 'gemini-3-flash-preview';
 
   const outputInstruction = mode === 'brief'
     ? "OUTPUT FORMAT: Concise text. Max 3 sentences. Direct facts only. No fluff."
