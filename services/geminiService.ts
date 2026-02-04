@@ -9,7 +9,6 @@ export const generateResponse = async (
   mode: ResponseMode = 'brief'
 ): Promise<{ text: string; sources: Source[] }> => {
   
-  // Instantiate inside the function to ensure the API key is read at runtime
   const apiKey = process.env.API_KEY;
 
   if (!apiKey) {
@@ -20,12 +19,13 @@ export const generateResponse = async (
       };
   }
 
-  // Create instance here to capture any instantiation errors
   const ai = new GoogleGenAI({ apiKey });
   
-  // CHANGE: Switched to 'gemini-2.0-flash-exp' to avoid 429 Quota Limits on free tier.
-  // Gemini 3 Preview has very strict limits currently.
-  const model = 'gemini-2.0-flash-exp'; 
+  // CHANGE: Switched to 'gemini-1.5-flash'.
+  // This is the current stable production model.
+  // It has high rate limits (15 RPM / 1M TPM) on the free tier, avoiding 429 errors.
+  // It is globally available, avoiding 404 errors.
+  const model = 'gemini-1.5-flash'; 
 
   const outputInstruction = mode === 'brief'
     ? "5.  **Output:** EXTREMELY CONCISE. 2-3 sentences maximum. Provide a direct summary. Do not use bullet points unless necessary."
@@ -36,6 +36,8 @@ export const generateResponse = async (
       const chat = ai.chats.create({
         model: model,
         config: {
+          // Including googleSearch for grounding. If this fails on free tier for specific regions,
+          // the error will be caught below.
           tools: [{ googleSearch: {} }],
           systemInstruction: `You are the EPSTEIN FILES AGENT ($EFAGENT). You are a digital forensic tool designed to navigate the unsealed Epstein Court Files, Flight Logs (Lolita Express), and related investigative data.
 
@@ -76,7 +78,6 @@ export const generateResponse = async (
     } catch (error: any) {
       console.error("Gemini API Error Details:", error);
       
-      // Retry logic for transient errors (but not for 400s or auth errors)
       if ((error.status === 429 || error.status === 503) && retryCount < 2) {
         const waitTime = Math.pow(2, retryCount) * 1000 + Math.random() * 500; 
         console.warn(`Gemini API rate limited (${error.status}). Retrying...`);
@@ -84,12 +85,11 @@ export const generateResponse = async (
         return runGeneration(retryCount + 1);
       }
 
-      // SHOW THE REAL ERROR MESSAGE TO THE USER
       const errorMsg = error.message || "Unknown Error";
       const errorCode = error.status || error.code || "N/A";
       
       return { 
-        text: `CONNECTION FAILED. \nMODEL: ${model}\nERROR CODE: ${errorCode}\nDETAILS: ${errorMsg}\n\n(If '429', the API quota is exhausted. Try again in a minute.)`, 
+        text: `CONNECTION FAILED. \nMODEL: ${model}\nERROR CODE: ${errorCode}\nDETAILS: ${errorMsg}`, 
         sources: [] 
       };
     }
