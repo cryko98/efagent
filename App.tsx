@@ -40,32 +40,43 @@ export default function App() {
       setMessages(prev => [...prev, newAiMsg]);
       setIsThinking(false);
     } catch (error) {
+      console.error(error);
       setIsThinking(false);
+      const errorMsg: Message = {
+         id: Date.now().toString(),
+         role: 'assistant',
+         text: "CONNECTION INTERRUPTED. RETRY.",
+         timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorMsg]);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#050505] text-gray-200 font-sans relative overflow-hidden flex flex-col items-center">
+    <div className="relative min-h-screen w-full bg-[#050505] text-gray-200 font-sans overflow-hidden flex flex-col items-center">
       
-      {/* Background Data Stream */}
+      {/* Background Data Stream - Fixed at z-0 */}
       <MatrixBackground />
       
-      {/* Main Container */}
-      <main className="relative z-20 w-full max-w-5xl h-screen flex flex-col py-4 px-4">
+      {/* Main Container - z-30 to sit above background and noise layers */}
+      <main className="relative z-30 w-full max-w-5xl h-screen flex flex-col py-4 px-4">
         
         {/* Top: Header */}
-        <div className="flex-none flex flex-col items-center justify-center py-8 relative">
+        <div className="flex-none flex flex-col items-center justify-center py-6 relative">
             
             {/* Title Stamp */}
-            <div className="border-2 border-evidence-red px-6 py-3 transform -rotate-1 bg-black/50 backdrop-blur-sm z-20">
-                <h1 className="text-2xl font-stamped text-evidence-red tracking-[0.2em] uppercase shadow-[0_0_15px_rgba(255,31,31,0.4)]">
-                    EPSTEIN FILES AGENT ($EFAGENT)
+            <div className="border-2 border-evidence-red px-4 md:px-6 py-2 md:py-3 transform -rotate-1 bg-black/80 backdrop-blur-md shadow-[0_0_20px_rgba(255,31,31,0.2)]">
+                <h1 className="text-xl md:text-2xl font-stamped text-evidence-red tracking-[0.2em] uppercase text-center">
+                    EPSTEIN FILES AGENT
                 </h1>
+                <div className="text-[10px] text-center font-typewriter text-gray-500 mt-1 tracking-widest">
+                    CLASSIFIED ARCHIVE ACCESS // $EFAGENT
+                </div>
             </div>
         </div>
 
         {/* Bottom: Chat Interface */}
-        <div className="flex-1 w-full mx-auto pb-4 overflow-hidden">
+        <div className="flex-1 w-full mx-auto pb-2 md:pb-4 overflow-hidden min-h-0">
              <ChatBox 
                 messages={messages} 
                 onSendMessage={handleSendMessage} 
