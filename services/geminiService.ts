@@ -23,9 +23,9 @@ export const generateResponse = async (
   // Create instance here to capture any instantiation errors
   const ai = new GoogleGenAI({ apiKey });
   
-  // Use 'gemini-2.0-flash-exp' if 'gemini-3' fails, but strictly following instructions we try gemini-3 first.
-  // If the user gets a "Model not found" error, we will know.
-  const model = 'gemini-3-flash-preview'; 
+  // CHANGE: Switched to 'gemini-2.0-flash-exp' to avoid 429 Quota Limits on free tier.
+  // Gemini 3 Preview has very strict limits currently.
+  const model = 'gemini-2.0-flash-exp'; 
 
   const outputInstruction = mode === 'brief'
     ? "5.  **Output:** EXTREMELY CONCISE. 2-3 sentences maximum. Provide a direct summary. Do not use bullet points unless necessary."
@@ -76,7 +76,8 @@ export const generateResponse = async (
     } catch (error: any) {
       console.error("Gemini API Error Details:", error);
       
-      if ((error.status === 429 || error.status === 503) && retryCount < 3) {
+      // Retry logic for transient errors (but not for 400s or auth errors)
+      if ((error.status === 429 || error.status === 503) && retryCount < 2) {
         const waitTime = Math.pow(2, retryCount) * 1000 + Math.random() * 500; 
         console.warn(`Gemini API rate limited (${error.status}). Retrying...`);
         await delay(waitTime);
@@ -88,7 +89,7 @@ export const generateResponse = async (
       const errorCode = error.status || error.code || "N/A";
       
       return { 
-        text: `CONNECTION FAILED. \nERROR CODE: ${errorCode}\nDETAILS: ${errorMsg}\n\n(If '404 Not Found', the model name '${model}' might be restricted. If '403', the API key is invalid.)`, 
+        text: `CONNECTION FAILED. \nMODEL: ${model}\nERROR CODE: ${errorCode}\nDETAILS: ${errorMsg}\n\n(If '429', the API quota is exhausted. Try again in a minute.)`, 
         sources: [] 
       };
     }
