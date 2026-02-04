@@ -1,10 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import { Source, ResponseMode } from "../types";
 
-// As per guidelines, use process.env.API_KEY directly.
-// We assume it is pre-configured and valid.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 export const generateResponse = async (
@@ -13,16 +9,24 @@ export const generateResponse = async (
   mode: ResponseMode = 'brief'
 ): Promise<{ text: string; sources: Source[] }> => {
   
-  if (!process.env.API_KEY) {
+  // Instantiate inside the function to ensure the API key is read at runtime
+  const apiKey = process.env.API_KEY;
+
+  if (!apiKey) {
       console.error("CRITICAL ERROR: API_KEY is missing.");
       return {
-          text: "SYSTEM ERROR: API KEY NOT CONFIGURED. ACCESS DENIED.",
+          text: "SYSTEM ERROR: API KEY NOT CONFIGURED. Please add VITE_API_KEY to Vercel Environment Variables.",
           sources: []
       };
   }
 
-  const model = 'gemini-3-flash-preview'; 
+  // Create instance here to capture any instantiation errors
+  const ai = new GoogleGenAI({ apiKey });
   
+  // Use 'gemini-2.0-flash-exp' if 'gemini-3' fails, but strictly following instructions we try gemini-3 first.
+  // If the user gets a "Model not found" error, we will know.
+  const model = 'gemini-3-flash-preview'; 
+
   const outputInstruction = mode === 'brief'
     ? "5.  **Output:** EXTREMELY CONCISE. 2-3 sentences maximum. Provide a direct summary. Do not use bullet points unless necessary."
     : "5.  **Output:** DETAILED INTELLIGENCE REPORT. Be comprehensive. Use bullet points. If possible, QUOTE specific phrases or document names from the context/knowledge base. Analyze connections thoroughly.";
@@ -70,24 +74,21 @@ export const generateResponse = async (
       return { text, sources: uniqueSources };
 
     } catch (error: any) {
-      const statusCode = error.status || error.code || 500;
-      console.error("Gemini API Error Details:", error); // Log full error to console
+      console.error("Gemini API Error Details:", error);
       
-      if ((statusCode === 429 || statusCode === 503) && retryCount < 3) {
+      if ((error.status === 429 || error.status === 503) && retryCount < 3) {
         const waitTime = Math.pow(2, retryCount) * 1000 + Math.random() * 500; 
-        console.warn(`Gemini API rate limited (${statusCode}). Retrying...`);
+        console.warn(`Gemini API rate limited (${error.status}). Retrying...`);
         await delay(waitTime);
         return runGeneration(retryCount + 1);
       }
-      
-      // Check for specific Google AI Studio errors
-      let errorMessage = "ACCESS DENIED. SERVER UNREACHABLE.";
-      if (error.message && error.message.includes("API key not valid")) {
-          errorMessage = "ACCESS DENIED. INVALID API KEY.";
-      }
+
+      // SHOW THE REAL ERROR MESSAGE TO THE USER
+      const errorMsg = error.message || "Unknown Error";
+      const errorCode = error.status || error.code || "N/A";
       
       return { 
-        text: errorMessage, 
+        text: `CONNECTION FAILED. \nERROR CODE: ${errorCode}\nDETAILS: ${errorMsg}\n\n(If '404 Not Found', the model name '${model}' might be restricted. If '403', the API key is invalid.)`, 
         sources: [] 
       };
     }
