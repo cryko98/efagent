@@ -1,0 +1,7 @@
+{
+  "name": "Epstein Files Agent",
+  "description": "Epstein Files Agent ($EFAGENT) - A digital forensic AI tool for navigating unsealed court files and flight logs.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
