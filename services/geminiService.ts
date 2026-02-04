@@ -21,23 +21,31 @@ export const generateResponse = async (
 
   const ai = new GoogleGenAI({ apiKey });
   
-  // CHANGE: Switched to 'gemini-1.5-flash'.
-  // This is the current stable production model.
-  // It has high rate limits (15 RPM / 1M TPM) on the free tier, avoiding 429 errors.
-  // It is globally available, avoiding 404 errors.
-  const model = 'gemini-1.5-flash'; 
+  // PRIMARY MODEL: gemini-1.5-flash
+  // This is the workhorse of the free tier. High rate limits, stable.
+  const PRIMARY_MODEL = 'gemini-1.5-flash';
+  
+  // FALLBACKS: If the primary fails (e.g. 404 region issue or temp outage), try these.
+  const FALLBACK_MODELS = [
+      'gemini-1.5-flash-8b', 
+      'gemini-2.0-flash-lite-preview-02-05'
+  ];
 
   const outputInstruction = mode === 'brief'
     ? "5.  **Output:** EXTREMELY CONCISE. 2-3 sentences maximum. Provide a direct summary. Do not use bullet points unless necessary."
     : "5.  **Output:** DETAILED INTELLIGENCE REPORT. Be comprehensive. Use bullet points. If possible, QUOTE specific phrases or document names from the context/knowledge base. Analyze connections thoroughly.";
 
-  const runGeneration = async (retryCount = 0): Promise<{ text: string; sources: Source[] }> => {
+  const runGeneration = async (retryCount = 0, modelIndex = -1): Promise<{ text: string; sources: Source[] }> => {
+    // Determine which model to use. -1 is primary.
+    const currentModel = modelIndex === -1 ? PRIMARY_MODEL : FALLBACK_MODELS[modelIndex];
+
     try {
+      console.log(`Attempting generation with model: ${currentModel}`);
       const chat = ai.chats.create({
-        model: model,
+        model: currentModel,
         config: {
-          // Including googleSearch for grounding. If this fails on free tier for specific regions,
-          // the error will be caught below.
+          // Note: googleSearch might be restricted on some free tier keys/regions.
+          // If it fails, the error catch will handle it.
           tools: [{ googleSearch: {} }],
           systemInstruction: `You are the EPSTEIN FILES AGENT ($EFAGENT). You are a digital forensic tool designed to navigate the unsealed Epstein Court Files, Flight Logs (Lolita Express), and related investigative data.
 
@@ -76,20 +84,29 @@ export const generateResponse = async (
       return { text, sources: uniqueSources };
 
     } catch (error: any) {
-      console.error("Gemini API Error Details:", error);
+      console.error(`Error with model ${currentModel}:`, error);
       
+      // RATE LIMIT (429) or SERVER OVERLOAD (503) -> Retry same model with backoff
       if ((error.status === 429 || error.status === 503) && retryCount < 2) {
         const waitTime = Math.pow(2, retryCount) * 1000 + Math.random() * 500; 
-        console.warn(`Gemini API rate limited (${error.status}). Retrying...`);
+        console.warn(`Rate limited on ${currentModel}. Retrying in ${waitTime}ms...`);
         await delay(waitTime);
-        return runGeneration(retryCount + 1);
+        return runGeneration(retryCount + 1, modelIndex);
       }
 
+      // MODEL NOT FOUND (404) or BAD REQUEST (400) -> Try fallback model
+      // 404 often means the model alias isn't available in the current API version/region.
+      if ((error.status === 404 || error.status === 400) && modelIndex < FALLBACK_MODELS.length - 1) {
+          console.warn(`Model ${currentModel} failed with ${error.status}. Switching to fallback...`);
+          return runGeneration(0, modelIndex + 1);
+      }
+
+      // If all else fails, return the error to the UI
       const errorMsg = error.message || "Unknown Error";
       const errorCode = error.status || error.code || "N/A";
       
       return { 
-        text: `CONNECTION FAILED. \nMODEL: ${model}\nERROR CODE: ${errorCode}\nDETAILS: ${errorMsg}`, 
+        text: `CONNECTION FAILED.\nFAILED MODEL: ${currentModel}\nERROR CODE: ${errorCode}\nDETAILS: ${errorMsg}\n\n(Note: Free tier keys may have rate limits or restricted model access. Try again shortly.)`, 
         sources: [] 
       };
     }
