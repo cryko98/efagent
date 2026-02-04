@@ -139,7 +139,7 @@ const ChatBox: React.FC<ChatBoxProps> = ({ messages, onSendMessage, onInputFocus
                 {isThinking && (
                 <div className="flex justify-start pl-0 animate-pulse">
                     <span className="text-xs text-evidence-red font-mono bg-black px-2 py-1">
-                        > SEARCHING DATABASE...
+                        {'>'} SEARCHING DATABASE...
                     </span>
                 </div>
                 )}
