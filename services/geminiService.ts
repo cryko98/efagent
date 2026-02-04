@@ -1,9 +1,9 @@
 import { GoogleGenAI } from "@google/genai";
 import { Source, ResponseMode } from "../types";
 
-const apiKey = process.env.API_KEY || '';
-
-const ai = new GoogleGenAI({ apiKey });
+// As per guidelines, use process.env.API_KEY directly.
+// We assume it is pre-configured and valid.
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -12,6 +12,15 @@ export const generateResponse = async (
   history: { role: string; parts: { text: string }[] }[],
   mode: ResponseMode = 'brief'
 ): Promise<{ text: string; sources: Source[] }> => {
+  
+  if (!process.env.API_KEY) {
+      console.error("CRITICAL ERROR: API_KEY is missing.");
+      return {
+          text: "SYSTEM ERROR: API KEY NOT CONFIGURED. ACCESS DENIED.",
+          sources: []
+      };
+  }
+
   const model = 'gemini-3-flash-preview'; 
   
   const outputInstruction = mode === 'brief'
@@ -62,6 +71,7 @@ export const generateResponse = async (
 
     } catch (error: any) {
       const statusCode = error.status || error.code || 500;
+      console.error("Gemini API Error Details:", error); // Log full error to console
       
       if ((statusCode === 429 || statusCode === 503) && retryCount < 3) {
         const waitTime = Math.pow(2, retryCount) * 1000 + Math.random() * 500; 
@@ -70,9 +80,14 @@ export const generateResponse = async (
         return runGeneration(retryCount + 1);
       }
       
-      console.error("Gemini API Error:", error);
+      // Check for specific Google AI Studio errors
+      let errorMessage = "ACCESS DENIED. SERVER UNREACHABLE.";
+      if (error.message && error.message.includes("API key not valid")) {
+          errorMessage = "ACCESS DENIED. INVALID API KEY.";
+      }
+      
       return { 
-        text: "ACCESS DENIED. SERVER UNREACHABLE.", 
+        text: errorMessage, 
         sources: [] 
       };
     }
