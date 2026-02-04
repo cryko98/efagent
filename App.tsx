@@ -9,7 +9,7 @@ export default function App() {
     {
       id: '1',
       role: 'assistant',
-      text: "ACCESS GRANTED. \n\nI am the Epstein Files Agent ($EFAGENT). I have access to the unsealed court documents, flight logs, and witness testimonies.\n\nAsk for a name, a date, or a flight record.",
+      text: "ACCESS GRANTED. \n\nI am the Epstein Files Agent ($EFAGENT). I contain the archived unsealed court documents, flight logs (Lolita Express), and witness testimonies.\n\nAsk for a name (e.g., 'Prince Andrew', 'Doe 36'), a date, or a location.",
       timestamp: new Date()
     }
   ]);
@@ -45,7 +45,7 @@ export default function App() {
       const errorMsg: Message = {
          id: Date.now().toString(),
          role: 'assistant',
-         text: "CONNECTION INTERRUPTED. RETRY.",
+         text: "ERROR: DATA STREAM DISRUPTED. RETRY.",
          timestamp: new Date()
       };
       setMessages(prev => [...prev, errorMsg]);
@@ -55,28 +55,33 @@ export default function App() {
   return (
     <div className="relative min-h-screen w-full bg-[#050505] text-gray-200 font-sans overflow-hidden flex flex-col items-center">
       
-      {/* Background Data Stream - Fixed at z-0 */}
+      {/* Background Data Stream */}
       <MatrixBackground />
       
-      {/* Main Container - z-30 to sit above background and noise layers */}
-      <main className="relative z-30 w-full max-w-5xl h-screen flex flex-col py-4 px-4">
+      {/* Main Container */}
+      <main className="relative z-30 w-full max-w-4xl h-screen flex flex-col py-6 px-4">
         
-        {/* Top: Header */}
-        <div className="flex-none flex flex-col items-center justify-center py-6 relative">
-            
-            {/* Title Stamp */}
-            <div className="border-2 border-evidence-red px-4 md:px-6 py-2 md:py-3 transform -rotate-1 bg-black/80 backdrop-blur-md shadow-[0_0_20px_rgba(255,31,31,0.2)]">
-                <h1 className="text-xl md:text-2xl font-stamped text-evidence-red tracking-[0.2em] uppercase text-center">
+        {/* Header */}
+        <div className="flex-none flex flex-col items-center justify-center mb-6">
+            <div className="border border-evidence-red/50 bg-black/80 backdrop-blur px-8 py-4 shadow-[0_0_30px_rgba(255,31,31,0.15)] relative">
+                {/* Decorative corners */}
+                <div className="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-evidence-red"></div>
+                <div className="absolute top-0 right-0 w-2 h-2 border-t-2 border-r-2 border-evidence-red"></div>
+                <div className="absolute bottom-0 left-0 w-2 h-2 border-b-2 border-l-2 border-evidence-red"></div>
+                <div className="absolute bottom-0 right-0 w-2 h-2 border-b-2 border-r-2 border-evidence-red"></div>
+
+                <h1 className="text-3xl md:text-4xl font-stamped text-evidence-red tracking-[0.15em] uppercase text-center drop-shadow-[0_0_5px_rgba(255,0,0,0.8)]">
                     EPSTEIN FILES AGENT
                 </h1>
-                <div className="text-[10px] text-center font-typewriter text-gray-500 mt-1 tracking-widest">
-                    CLASSIFIED ARCHIVE ACCESS // $EFAGENT
+                <div className="flex justify-between items-center mt-2 border-t border-[#333] pt-1">
+                    <span className="text-[10px] font-typewriter text-gray-500 tracking-widest">CASE: 09-CR-332</span>
+                    <span className="text-[10px] font-typewriter text-evidence-red animate-pulse">STATUS: UNSEALED</span>
                 </div>
             </div>
         </div>
 
-        {/* Bottom: Chat Interface */}
-        <div className="flex-1 w-full mx-auto pb-2 md:pb-4 overflow-hidden min-h-0">
+        {/* Chat Interface - Takes up remaining space */}
+        <div className="flex-1 w-full min-h-0 flex flex-col shadow-2xl shadow-black/50">
              <ChatBox 
                 messages={messages} 
                 onSendMessage={handleSendMessage} 
